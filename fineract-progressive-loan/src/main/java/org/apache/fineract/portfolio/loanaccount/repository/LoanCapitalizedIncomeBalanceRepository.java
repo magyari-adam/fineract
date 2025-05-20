@@ -22,6 +22,7 @@ import java.util.List;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanCapitalizedIncomeBalance;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 
 public interface LoanCapitalizedIncomeBalanceRepository
         extends JpaRepository<LoanCapitalizedIncomeBalance, Long>, JpaSpecificationExecutor<LoanCapitalizedIncomeBalance> {
@@ -29,4 +30,7 @@ public interface LoanCapitalizedIncomeBalanceRepository
     List<LoanCapitalizedIncomeBalance> findAllByLoanId(Long loanId);
 
     LoanCapitalizedIncomeBalance findByLoanIdAndLoanTransactionId(Long loanId, Long transactionId);
+
+    @Query("SELECT lcib FROM LoanCapitalizedIncomeBalance lcib, LoanTransaction lt, LoanTransactionRelation ltr WHERE lt.loan.id = lcib.loan.id AND ltr.fromTransaction.id =:transactionId AND ltr.toTransaction.id=lt.id AND lcib.loanTransaction.id = lt.id")
+    LoanCapitalizedIncomeBalance findBalanceForAdjustment(Long transactionId);
 }
