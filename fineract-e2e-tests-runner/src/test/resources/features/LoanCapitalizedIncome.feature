@@ -1909,3 +1909,172 @@ Feature: Capitalized Income
       | 01 March 2024    | Accrual                         | 0.03   | 0.0       | 0.03     | 0.0  | 0.0       | 0.0          | false    | false    |
       | 01 March 2024    | Charge-off                      | 101.17 | 100.29    | 0.88     | 0.0  | 0.0       | 0.0          | false    | false    |
       | 01 March 2024    | Capitalized Income Amortization | 17.0   | 0.0       | 17.0     | 0.0  | 0.0       | 0.0          | false    | false    |
+
+  @TestRailId:C3665
+  Scenario: Verify Capitalized Income Adjustment with partial amortization and allocation strategy - Credit Adj < Bal
+    When Admin sets the business date to "01 January 2024"
+    And Admin creates a client with random data
+    When Admin creates a fully customized loan with the following data:
+      | LoanProduct                                                                                       | submitted on date | with Principal | ANNUAL interest rate % | interest type     | interest calculation period | amortization type  | loanTermFrequency | loanTermFrequencyType | repaymentEvery | repaymentFrequencyType | numberOfRepayments | graceOnPrincipalPayment | graceOnInterestPayment | interest free period | Payment strategy            |
+      | LP2_ADV_PYMNT_INTEREST_DAILY_EMI_360_30_INTEREST_RECALC_DAILY_CAPITALIZED_INCOME_ADJ_CUSTOM_ALLOC | 01 January 2024   | 150            | 7                      | DECLINING_BALANCE | DAILY                       | EQUAL_INSTALLMENTS | 3                 | MONTHS                | 1              | MONTHS                 | 3                  | 0                       | 0                      | 0                    | ADVANCED_PAYMENT_ALLOCATION |
+    And Admin successfully approves the loan on "01 January 2024" with "150" amount and expected disbursement date on "01 January 2024"
+    And Admin successfully disburse the loan on "01 January 2024" with "100" EUR transaction amount
+    And Admin adds capitalized income with "AUTOPAY" payment type to the loan on "01 January 2024" with "50" EUR transaction amount
+    Then Loan status will be "ACTIVE"
+    And Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type   | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement       | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+    When Admin sets the business date to "01 February 2024"
+    When Customer makes "REPAYMENT" transaction with "AUTOPAY" payment type on "01 February 2024" with 50.58 EUR transaction amount and system-generated Idempotency key
+    Then Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type                | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement                    | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income              | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+      | 01 February 2024 | Repayment                       | 50.58  | 50.0      | 0.58     | 0.0  | 0.0       | 100.0        | false    |
+    When Admin sets the business date to "02 February 2024"
+    And Admin runs inline COB job for Loan
+    Then Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type                | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement                    | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income              | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+      | 01 February 2024 | Accrual                         | 0.58   | 0.0       | 0.58     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Capitalized Income Amortization | 0.83   | 0.0       | 0.83     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Repayment                       | 50.58  | 50.0      | 0.58     | 0.0  | 0.0       | 100.0        | false    |
+    Then Loan Transactions tab has a "CAPITALIZED_INCOME_AMORTIZATION" transaction with date "01 February 2024" which has the following Journal entries:
+      | Type      | Account code | Account name                 | Debit  | Credit |
+      | INCOME    | 404000       | Interest Income              |        | 0.83  |
+      | LIABILITY | 145024       | Deferred Capitalized Income  | 0.83   |        |
+    When Admin sets the business date to "01 March 2024"
+    And Customer makes "REPAYMENT" transaction with "AUTOPAY" payment type on "01 March 2024" with 50.00 EUR transaction amount and system-generated Idempotency key
+    Then Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type                | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement                    | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income              | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+      | 01 February 2024 | Accrual                         | 0.58   | 0.0       | 0.58     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Capitalized Income Amortization | 0.83   | 0.0       | 0.83     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Repayment                       | 50.58  | 50.0      | 0.58     | 0.0  | 0.0       | 100.0        | false    |
+      | 01 March 2024    | Repayment                       | 50.0   | 49.71     | 0.29     | 0.0  | 0.0       | 50.29        | false    |
+    And Admin adds capitalized income adjustment with "AUTOPAY" payment type to the loan on "01 March 2024" with "10" EUR transaction amount
+    Then Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type                | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement                    | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income              | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+      | 01 February 2024 | Repayment                       | 50.58  | 50.0      | 0.58     | 0.0  | 0.0       | 100.0        | false    |
+      | 01 February 2024 | Accrual                         | 0.58   | 0.0       | 0.58     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Capitalized Income Amortization | 0.83   | 0.0       | 0.83     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 March 2024    | Repayment                       | 50.0   | 49.71     | 0.29     | 0.0  | 0.0       | 50.29        | false    |
+      | 01 March 2024    | Capitalized Income Adjustment   | 10.0   | 0.29      | 0.0      | 0.0  | 0.0       | 50.0         | false    |
+    When Admin sets the business date to "01 April 2024"
+    And Customer makes "REPAYMENT" transaction with "AUTOPAY" payment type on "01 April 2024" with 0.29 EUR transaction amount and system-generated Idempotency key
+    Then Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type                | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement                    | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income              | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+      | 01 February 2024 | Repayment                       | 50.58  | 50.0      | 0.58     | 0.0  | 0.0       | 100.0        | false    |
+      | 01 February 2024 | Accrual                         | 0.58   | 0.0       | 0.58     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Capitalized Income Amortization | 0.83   | 0.0       | 0.83     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 March 2024    | Repayment                       | 50.0   | 49.71     | 0.29     | 0.0  | 0.0       | 50.29        | false    |
+      | 01 March 2024    | Capitalized Income Adjustment   | 10.0   | 0.29      | 0.0      | 0.0  | 0.0       | 50.0         | false    |
+      | 01 April 2024    | Repayment                       | 0.29   | 0.0       | 0.0      | 0.0  | 0.0       | 50.0         | false    |
+      | 01 April 2024    | Accrual                         | 0.29   | 0.0       | 0.29     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 April 2024    | Capitalized Income Amortization | 39.17  | 0.0       | 39.17    | 0.0  | 0.0       | 0.0          | false    |
+    Then Loan Transactions tab has a "CAPITALIZED_INCOME_ADJUSTMENT" transaction with date "01 March 2024" which has the following Journal entries:
+      | Type      | Account code | Account name                 | Debit  | Credit |
+      | ASSET     | 112601       | Loans Receivable             |        | 0.29   |
+      | LIABILITY | 145024       | Deferred Capitalized Income  | 10.0   |        |
+
+  @TestRailId:C3666
+  Scenario: Verify Capitalized Income Adjustment with partial amortization and allocation strategy - Credit Adj > Bal
+    When Admin sets the business date to "01 January 2024"
+    And Admin creates a client with random data
+    When Admin creates a fully customized loan with the following data:
+      | LoanProduct                                                                                       | submitted on date | with Principal | ANNUAL interest rate % | interest type     | interest calculation period | amortization type  | loanTermFrequency | loanTermFrequencyType | repaymentEvery | repaymentFrequencyType | numberOfRepayments | graceOnPrincipalPayment | graceOnInterestPayment | interest free period | Payment strategy            |
+      | LP2_ADV_PYMNT_INTEREST_DAILY_EMI_360_30_INTEREST_RECALC_DAILY_CAPITALIZED_INCOME_ADJ_CUSTOM_ALLOC | 01 January 2024   | 150            | 7                      | DECLINING_BALANCE | DAILY                       | EQUAL_INSTALLMENTS | 3                 | MONTHS                | 1              | MONTHS                 | 3                  | 0                       | 0                      | 0                    | ADVANCED_PAYMENT_ALLOCATION |
+    And Admin successfully approves the loan on "01 January 2024" with "150" amount and expected disbursement date on "01 January 2024"
+    And Admin successfully disburse the loan on "01 January 2024" with "100" EUR transaction amount
+    And Admin adds capitalized income with "AUTOPAY" payment type to the loan on "01 January 2024" with "50" EUR transaction amount
+    Then Loan status will be "ACTIVE"
+    And Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type   | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement       | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+    When Admin sets the business date to "01 February 2024"
+    When Customer makes "REPAYMENT" transaction with "AUTOPAY" payment type on "01 February 2024" with 50.58 EUR transaction amount and system-generated Idempotency key
+    Then Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type                | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement                    | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income              | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+      | 01 February 2024 | Repayment                       | 50.58  | 49.7      | 0.88     | 0.0  | 0.0       | 100.3        | false    |
+    When Admin sets the business date to "02 February 2024"
+    And Admin runs inline COB job for Loan
+    Then Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type                | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement                    | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income              | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+      | 01 February 2024 | Accrual                         | 0.88   | 0.0       | 0.88     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Capitalized Income Amortization | 17.05  | 0.0       | 17.05    | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Repayment                       | 50.58  | 49.7      | 0.88     | 0.0  | 0.0       | 100.3        | false    |
+    When Admin sets the business date to "01 March 2024"
+    When Customer makes "REPAYMENT" transaction with "AUTOPAY" payment type on "01 March 2024" with 50.58 EUR transaction amount and system-generated Idempotency key
+    Then Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type                | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement                    | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income              | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+      | 01 February 2024 | Accrual                         | 0.88   | 0.0       | 0.88     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Capitalized Income Amortization | 17.05  | 0.0       | 17.05    | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Repayment                       | 50.58  | 49.7      | 0.88     | 0.0  | 0.0       | 100.3        | false    |
+      | 01 March 2024    | Repayment                       | 50.58  | 49.99     | 0.59     | 0.0  | 0.0       | 50.31        | false    |
+      | 01 March 2024    | Accrual                         | 0.59   | 0.0       | 0.59     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 March 2024    | Capitalized Income Amortization | 6.67   | 0.0       | 6.67     | 0.0  | 0.0       | 0.0          | false    |
+    And Admin adds capitalized income adjustment with "AUTOPAY" payment type to the loan on "01 March 2024" with "10" EUR transaction amount
+    Then Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type                | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement                    | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income              | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+      | 01 February 2024 | Accrual                         | 0.88   | 0.0       | 0.88     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Capitalized Income Amortization | 17.05  | 0.0       | 17.05    | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Repayment                       | 50.58  | 49.7      | 0.88     | 0.0  | 0.0       | 100.3        | false    |
+      | 01 March 2024    | Repayment                       | 50.58  | 49.99     | 0.59     | 0.0  | 0.0       | 50.31        | false    |
+      | 01 March 2024    | Accrual                         | 0.59   | 0.0       | 0.59     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 March 2024    | Capitalized Income Adjustment   | 10.0   | 10.0      | 0.0      | 0.0  | 0.0       | 40.31        | false    |
+      | 01 March 2024    | Capitalized Income Amortization | 6.67   | 0.0       | 6.67     | 0.0  | 0.0       | 0.0          | false    |
+    When Admin sets the business date to "15 March 2024"
+    And Admin adds capitalized income adjustment with "AUTOPAY" payment type to the loan on "15 March 2024" with "5" EUR transaction amount
+    Then Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type                | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement                    | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income              | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+      | 01 February 2024 | Accrual                         | 0.88   | 0.0       | 0.88     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Capitalized Income Amortization | 17.05  | 0.0       | 17.05    | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Repayment                       | 50.58  | 49.7      | 0.88     | 0.0  | 0.0       | 100.3        | false    |
+      | 01 March 2024    | Repayment                       | 50.58  | 49.99     | 0.59     | 0.0  | 0.0       | 50.31        | false    |
+      | 01 March 2024    | Accrual                         | 0.59   | 0.0       | 0.59     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 March 2024    | Capitalized Income Adjustment   | 10.0   | 10.0      | 0.0      | 0.0  | 0.0       | 40.31        | false    |
+      | 01 March 2024    | Capitalized Income Amortization | 6.67   | 0.0       | 6.67     | 0.0  | 0.0       | 0.0          | false    |
+      | 15 March 2024    | Capitalized Income Adjustment   | 5.0    | 5.0       | 0.0      | 0.0  | 0.0       | 35.31        | false    |
+    When Admin sets the business date to "01 April 2024"
+    And Customer makes "REPAYMENT" transaction with "AUTOPAY" payment type on "01 April 2024" with 35.6 EUR transaction amount and system-generated Idempotency key
+    Then Loan Transactions tab has the following data:
+      | Transaction date | Transaction Type                | Amount | Principal | Interest | Fees | Penalties | Loan Balance | Reverted |
+      | 01 January 2024  | Disbursement                    | 100.0  | 0.0       | 0.0      | 0.0  | 0.0       | 100.0        | false    |
+      | 01 January 2024  | Capitalized Income              | 50.0   | 50.0      | 0.0      | 0.0  | 0.0       | 150.0        | false    |
+      | 01 February 2024 | Accrual                         | 0.88   | 0.0       | 0.88     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Capitalized Income Amortization | 17.05  | 0.0       | 17.05    | 0.0  | 0.0       | 0.0          | false    |
+      | 01 February 2024 | Repayment                       | 50.58  | 49.7      | 0.88     | 0.0  | 0.0       | 100.3        | false    |
+      | 01 March 2024    | Repayment                       | 50.58  | 49.99     | 0.59     | 0.0  | 0.0       | 50.31        | false    |
+      | 01 March 2024    | Accrual                         | 0.59   | 0.0       | 0.59     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 March 2024    | Capitalized Income Adjustment   | 10.0   | 10.0      | 0.0      | 0.0  | 0.0       | 40.31        | false    |
+      | 01 March 2024    | Capitalized Income Amortization | 6.67   | 0.0       | 6.67     | 0.0  | 0.0       | 0.0          | false    |
+      | 15 March 2024    | Capitalized Income Adjustment   | 5.0    | 5.0       | 0.0      | 0.0  | 0.0       | 35.31        | false    |
+      | 01 April 2024    | Repayment                       | 35.6   | 35.31     | 0.29     | 0.0  | 0.0       | 0.0          | false    |
+      | 01 April 2024    | Accrual                         | 0.29   | 0.0       | 0.29     | 0.0  | 0.0       | 0.0          | false    |
+    Then Loan Transactions tab has a "CAPITALIZED_INCOME_ADJUSTMENT" transaction with date "01 March 2024" which has the following Journal entries:
+      | Type      | Account code | Account name                 | Debit  | Credit |
+      | ASSET     | 112601       | Loans Receivable             |        | 10.0   |
+      | LIABILITY | 145024       | Deferred Capitalized Income  | 10.0   |        |
+    Then Loan Transactions tab has a "CAPITALIZED_INCOME_ADJUSTMENT" transaction with date "15 March 2024" which has the following Journal entries:
+      | Type      | Account code | Account name                 | Debit  | Credit |
+      | ASSET     | 112601       | Loans Receivable             |        | 5.0    |
+      | LIABILITY | 145024       | Deferred Capitalized Income  | 5.0    |        |
+    Then Loan status will be "CLOSED_OBLIGATIONS_MET"
