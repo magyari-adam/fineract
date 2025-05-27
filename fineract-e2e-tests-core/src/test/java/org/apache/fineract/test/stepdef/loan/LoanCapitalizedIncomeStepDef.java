@@ -25,7 +25,6 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.client.models.GetLoansLoanIdResponse;
 import org.apache.fineract.client.models.GetLoansLoanIdTransactions;
-import org.apache.fineract.client.models.PostLoansLoanIdTransactionsResponse;
 import org.apache.fineract.client.models.PostLoansResponse;
 import org.apache.fineract.client.services.LoansApi;
 import org.apache.fineract.test.helper.ErrorHelper;

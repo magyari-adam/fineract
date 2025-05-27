@@ -2624,11 +2624,13 @@ public class LoanProductGlobalInitializerStep implements FineractGlobalInitializ
                 TestContextKey.DEFAULT_LOAN_PRODUCT_CREATE_RESPONSE_LP2_ADV_PYMNT_360_30_INTEREST_RECALCULATION_ZERO_INTEREST_CHARGE_OFF_ACCRUAL_ACTIVITY,
                 responseLoanProductsRequestAdvInterestRecalculationZeroInterestChargeOffBehaviourAccrualActivity);
 
-        //LP2 with progressive loan schedule + horizontal + interest EMI + 360/30 + custom allocation capital adjustment
+        // LP2 with progressive loan schedule + horizontal + interest EMI + 360/30 + custom allocation capital
+        // adjustment
         // + interest recalculation, preClosureInterestCalculationStrategy= till preclose,
         // Frequency for recalculate Outstanding Principal: Daily, Frequency Interval for recalculation: 1
         // capitalized income enabled + income type - fee
-        final String name106 = DefaultLoanProduct.LP2_ADV_PYMNT_INTEREST_DAILY_EMI_360_30_INTEREST_RECALC_DAILY_CAPITALIZED_INCOME_ADJ_CUSTOM_ALLOC.getName();
+        final String name106 = DefaultLoanProduct.LP2_ADV_PYMNT_INTEREST_DAILY_EMI_360_30_INTEREST_RECALC_DAILY_CAPITALIZED_INCOME_ADJ_CUSTOM_ALLOC
+                .getName();
         final PostLoanProductsRequest loanProductsRequestLP2ProgressiveAdvPayment36030InterestRecalcCapitalizedIncomeAdjCustomAlloc = loanProductsRequestFactory
                 .defaultLoanProductsRequestLP2EmiCapitalizedIncome()//
                 .name(name106)//
@@ -2659,8 +2661,8 @@ public class LoanProductGlobalInitializerStep implements FineractGlobalInitializ
                                 LoanProductPaymentAllocationRule.AllocationTypesEnum.IN_ADVANCE_PENALTY), //
                         createPaymentAllocation("PAYOUT_REFUND", "NEXT_INSTALLMENT")));//
 
-        final Response<PostLoanProductsResponse> responseLoanProductsRequestLP2ProgressiveAdvPayment36030InterestRecalcCapitalizedIncomeAdjCustomAlloc =
-                loanProductsApi.createLoanProduct(loanProductsRequestLP2ProgressiveAdvPayment36030InterestRecalcCapitalizedIncomeAdjCustomAlloc).execute();
+        final Response<PostLoanProductsResponse> responseLoanProductsRequestLP2ProgressiveAdvPayment36030InterestRecalcCapitalizedIncomeAdjCustomAlloc = loanProductsApi
+                .createLoanProduct(loanProductsRequestLP2ProgressiveAdvPayment36030InterestRecalcCapitalizedIncomeAdjCustomAlloc).execute();
 
         TestContext.INSTANCE.set(
                 TestContextKey.DEFAULT_LOAN_PRODUCT_CREATE_RESPONSE_LP2_ADV_PYMNT_INTEREST_DAILY_EMI_360_30_INTEREST_RECALC_DAILY_CAPITALIZED_INCOME_ADJ_CUSTOM_ALLOC,

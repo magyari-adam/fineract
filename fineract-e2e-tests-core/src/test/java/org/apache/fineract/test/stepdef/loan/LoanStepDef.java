@@ -4112,8 +4112,8 @@ public class LoanStepDef extends AbstractStepDef {
         ErrorHelper.checkSuccessfulApiCall(capitalizedIncomeResponse);
     }
 
-    public Response<PostLoansLoanIdTransactionsResponse> adjustCapitalizedIncome(
-            final String transactionPaymentType, final String transactionDate, final String amount, final Long transactionId) throws IOException {
+    public Response<PostLoansLoanIdTransactionsResponse> adjustCapitalizedIncome(final String transactionPaymentType,
+            final String transactionDate, final String amount, final Long transactionId) throws IOException {
 
         final Response<PostLoansResponse> loanResponse = testContext().get(TestContextKey.LOAN_CREATE_RESPONSE);
         final long loanId = loanResponse.body().getLoanId();
@@ -4121,14 +4121,9 @@ public class LoanStepDef extends AbstractStepDef {
         final DefaultPaymentType paymentType = DefaultPaymentType.valueOf(transactionPaymentType);
         final Long paymentTypeValue = paymentTypeResolver.resolve(paymentType);
 
-        final PostLoansLoanIdTransactionsTransactionIdRequest capitalizedIncomeRequest =
-                new PostLoansLoanIdTransactionsTransactionIdRequest()
-                        .transactionDate(transactionDate)
-                        .dateFormat("dd MMMM yyyy")
-                        .locale("en")
-                        .transactionAmount(Double.valueOf(amount))
-                        .paymentTypeId(paymentTypeValue)
-                        .externalId("EXT-CAP-INC-ADJ-" + UUID.randomUUID());
+        final PostLoansLoanIdTransactionsTransactionIdRequest capitalizedIncomeRequest = new PostLoansLoanIdTransactionsTransactionIdRequest()
+                .transactionDate(transactionDate).dateFormat("dd MMMM yyyy").locale("en").transactionAmount(Double.valueOf(amount))
+                .paymentTypeId(paymentTypeValue).externalId("EXT-CAP-INC-ADJ-" + UUID.randomUUID());
 
         // Use adjustLoanTransaction with the transaction ID and command
         final Response<PostLoansLoanIdTransactionsResponse> capitalizedIncomeResponse = loanTransactionsApi
@@ -4170,8 +4165,8 @@ public class LoanStepDef extends AbstractStepDef {
     }
 
     @And("Admin adds capitalized income adjustment with {string} payment type to the loan on {string} with {string} EUR transaction amount")
-    public void adminAddsCapitalizedIncomeAdjustmentToTheLoan(final String transactionPaymentType,
-                                                              final String transactionDate, final String amount) throws IOException {
+    public void adminAddsCapitalizedIncomeAdjustmentToTheLoan(final String transactionPaymentType, final String transactionDate,
+            final String amount) throws IOException {
         final Response<PostLoansResponse> loanResponse = testContext().get(TestContextKey.LOAN_CREATE_RESPONSE);
         final long loanId = loanResponse.body().getLoanId();
 
@@ -4182,23 +4177,20 @@ public class LoanStepDef extends AbstractStepDef {
         String currentBusinessDate = businessDateHelper.getBusinessDate();
         log.info("Current business date: {}, Transaction date: {}", currentBusinessDate, transactionDate);
 
-        final Response<GetLoansLoanIdResponse> loanDetailsResponse = loansApi
-                .retrieveLoan(loanId, false, "transactions", "", "").execute();
+        final Response<GetLoansLoanIdResponse> loanDetailsResponse = loansApi.retrieveLoan(loanId, false, "transactions", "", "").execute();
         ErrorHelper.checkSuccessfulApiCall(loanDetailsResponse);
 
         final List<GetLoansLoanIdTransactions> transactions = loanDetailsResponse.body().getTransactions();
         final GetLoansLoanIdTransactions capitalizedIncomeTransaction = transactions.stream()
-                .filter(t -> "Capitalized Income".equals(t.getType().getValue()))
-                .findFirst()
+                .filter(t -> "Capitalized Income".equals(t.getType().getValue())).findFirst()
                 .orElseThrow(() -> new IllegalStateException("No Capitalized Income transaction found for loan " + loanId));
 
-        final Response<PostLoansLoanIdTransactionsResponse> adjustmentResponse = adjustCapitalizedIncome(
-                transactionPaymentType, transactionDate, amount, capitalizedIncomeTransaction.getId());
+        final Response<PostLoansLoanIdTransactionsResponse> adjustmentResponse = adjustCapitalizedIncome(transactionPaymentType,
+                transactionDate, amount, capitalizedIncomeTransaction.getId());
 
         testContext().set(TestContextKey.LOAN_CAPITALIZED_INCOME_ADJUSTMENT_RESPONSE, adjustmentResponse);
         ErrorHelper.checkSuccessfulApiCall(adjustmentResponse);
 
-        log.info("Capitalized Income Adjustment created: Transaction ID {}",
-                adjustmentResponse.body().getResourceId());
+        log.info("Capitalized Income Adjustment created: Transaction ID {}", adjustmentResponse.body().getResourceId());
     }
 }
