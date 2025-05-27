@@ -250,7 +250,8 @@ public class LoanCapitalizedIncomeTest extends BaseLoanIntegrationTest {
                     journalEntry(0.55, feeIncomeAccount, "CREDIT") //
             );
 
-            loanTransactionHelper.capitalizedIncomeAdjustment(loanId, capitalizedIncomeIdRef.get(), "3 January 2024", 50.0);
+            Long capitalizedIncomeAdjustmentTransactionId = loanTransactionHelper
+                    .capitalizedIncomeAdjustment(loanId, capitalizedIncomeIdRef.get(), "3 January 2024", 50.0).getResourceId();
 
             verifyTransactions(loanId, //
                     transaction(100.0, "Disbursement", "01 January 2024"), //
@@ -291,6 +292,17 @@ public class LoanCapitalizedIncomeTest extends BaseLoanIntegrationTest {
                     journalEntry(0.01, interestReceivableAccount, "CREDIT"), //
                     journalEntry(1.10, feeIncomeAccount, "DEBIT"), //
                     journalEntry(48.90, deferredIncomeLiabilityAccount, "DEBIT") //
+            );
+
+            verifyTRJournalEntries(capitalizedIncomeAdjustmentTransactionId, //
+                    journalEntry(49.96, loansReceivableAccount, "CREDIT"), //
+                    journalEntry(0.04, interestReceivableAccount, "CREDIT"), //
+                    journalEntry(1.10, feeIncomeAccount, "DEBIT"), //
+                    journalEntry(48.90, deferredIncomeLiabilityAccount, "DEBIT"), //
+                    journalEntry(49.96, loansReceivableAccount, "DEBIT"), //
+                    journalEntry(0.04, interestReceivableAccount, "DEBIT"), //
+                    journalEntry(1.10, feeIncomeAccount, "CREDIT"), //
+                    journalEntry(48.90, deferredIncomeLiabilityAccount, "CREDIT") //
             );
         });
     }
